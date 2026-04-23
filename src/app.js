@@ -27,6 +27,7 @@
   import user_travelRoutes   from "./routes/user_travelRoutes.js";
   import vehicle_travelRoutes from "./routes/vehicle_travelRoutes.js"
   import destino_viajeRoutes from "./routes/destino_viajeRoutes.js"
+  import OrderservRoutes from "./routes/orderservRoutes.js"
   dotenv.config();
 
   const app = express();
@@ -56,8 +57,8 @@
   app.use("/api/informe_viajes", tripsReportRoutes);
   app.use("/api/solicitudes",applicationRoutes);
   app.use("/api/accesorios",accessoriesRoutes);
-  app.use("/api/mantenimiento",maintenanceRoutes);
-  app.use("/api/institucion",institutionRoutes);
+  app.use("/api/mantenimiento",maintenanceRoutes);//serviciosa
+  app.use("/api/institucion",institutionRoutes);//servicos
    app.use("/api/mecanicos",mechanicsRoutes);
   app.use("/api/devoluciones",returnsRoutes);
   app.use("/api/peticiones",requestRoutes);
@@ -65,4 +66,5 @@
   app.use("/api/userviaje",user_travelRoutes );
   app.use("/api/vehicletravel",vehicle_travelRoutes);
   app.use("/api/destinoviaje",destino_viajeRoutes);
+  app.use("/api/pedidoserv", OrderservRoutes);//srvicos
   export default app;
