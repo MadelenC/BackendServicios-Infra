@@ -3,14 +3,86 @@ import { entidadesRepository } from "../repositories/entidadesRepository.js";
 import { maintenanceRepository } from "../repositories/maintenanceRepository.js";
 import bcrypt from "bcrypt";
 
-// 📌 GET ALL USERS
-export const getAllUsers = async () => {
-  return await userRepository.find({
-    relations: ["entidades", "maintenances"],
-  });
+
+export const getAllUsers = async ({
+  page,
+  limit,
+  search,
+  role,
+}) => {
+
+  const query =
+    userRepository
+      .createQueryBuilder("user")
+
+      .leftJoinAndSelect(
+        "user.entidades",
+        "entidades"
+      )
+      .leftJoinAndSelect(
+        "user.maintenances",
+        "maintenances"
+      )
+  if (search) {
+    query.andWhere(
+
+      `(
+        LOWER(user.nombres) LIKE LOWER(:search)
+        OR LOWER(user.apellidos) LIKE LOWER(:search)
+        OR LOWER(user.cedula) LIKE LOWER(:search)
+        OR LOWER(user.celular) LIKE LOWER(:search)
+      )`,
+
+      {
+        search: `%${search}%`,
+      }
+
+    );
+
+  }
+
+  
+  if (role) {
+
+    query.andWhere(
+      "user.tipo = :role",
+      { role }
+    );
+
+  }
+
+ 
+  const total =
+    await query.getCount();
+
+
+  query
+    .skip((page - 1) * limit)
+    .take(limit)
+
+    .orderBy("user.id", "ASC");
+
+  
+  const users =
+    await query.getMany();
+
+  return {
+
+    users,
+
+    total,
+
+    page,
+
+    limit,
+
+    totalPages:
+      Math.ceil(total / limit),
+
+  };
+
 };
 
-// 📌 GET USER BY ID
 export const getUserById = async (id) => {
   return await userRepository.findOne({
     where: { id },
@@ -18,16 +90,15 @@ export const getUserById = async (id) => {
   });
 };
 
-// 📌 CREATE USER (CORREGIDO CON BCRYPT)
 export const createUser = async (data) => {
   try {
     const payload = { ...data };
 
-    // limpiar opcionales
+
     if (!payload.email) delete payload.email;
     if (!payload.cargo) delete payload.cargo;
 
-    // 🔐 HASH PASSWORD
+
     const hashedPassword = await bcrypt.hash(payload.password, 10);
 
     const userAdd = {
@@ -38,10 +109,10 @@ export const createUser = async (data) => {
       email: payload.email,
       tipo: payload.tipo,
 
-      // 🔥 insertador desde frontend (usuario logueado)
+   
       insertador: payload.insertador || "DESCONOCIDO",
 
-      // 🔐 PASSWORD CIFRADO
+     
       password: hashedPassword,
 
       cargo: payload.cargo,
@@ -65,60 +136,108 @@ export const createUser = async (data) => {
   }
 };
 
-// 📌 UPDATE USER
+
 export const updateUser = async (id, data) => {
-  const user = await userRepository.findOne({
-    where: { id },
-    relations: ["entidades", "maintenances"],
-  });
+  try {
+    console.log("📥 DATA QUE LLEGA:", data);
 
-  if (!user) throw { status: 404, message: "Usuario no encontrado" };
+    const user = await userRepository.findOne({
+      where: { id },
+      relations: ["entidades"],
+    });
 
-  userRepository.merge(user, data);
+    if (!user) {
+      throw { status: 404, message: "Usuario no encontrado" };
+    }
 
-  if (data.entidades && Array.isArray(data.entidades)) {
-    user.entidades = await Promise.all(
-      data.entidades.map(async (eData) => {
-        let ent;
+    const { entidades, ...userData } = data;
+
+    console.log("👤 USER DATA:", userData);
+    console.log("🏢 ENTIDADES:", entidades);
+
+    if (!userData.password) {
+      delete userData.password;
+    }
+
+    
+    userRepository.merge(user, userData);
+    await userRepository.save(user);
+
+    
+    if (Array.isArray(entidades)) {
+      for (const eData of entidades) {
+
+        console.log("➡️ PROCESANDO ENTIDAD:", eData);
+
+        let entidad;
 
         if (eData.id) {
-          ent = await entidadesRepository.findOneBy({ id: eData.id });
+          entidad = await entidadesRepository.findOneBy({ id: eData.id });
 
-          if (!ent) {
+          if (!entidad) {
             throw {
               status: 404,
-              message: `Entidad con id ${eData.id} no encontrada`,
+              message: `Entidad ${eData.id} no encontrada`,
             };
           }
 
-          entidadesRepository.merge(ent, eData);
-          await entidadesRepository.save(ent);
+          entidadesRepository.merge(entidad, {
+            ...eData,
+            updated_at: new Date(), 
+          });
+
         } else {
-          ent = entidadesRepository.create({ ...eData, user });
-          await entidadesRepository.save(ent);
+          entidad = entidadesRepository.create({
+            ...eData,
+            user,
+
+            
+            created_at: new Date(),
+            updated_at: new Date(),
+          });
         }
 
-        return ent;
-      })
-    );
-  }
-
-  try {
-    return await userRepository.save(user);
-  } catch (err) {
-    if (err.code === "23505") {
-      const field = err.detail?.match(/\((.+)\)/)?.[1];
-      throw {
-        status: 400,
-        message: `Ya existe un registro con el mismo ${field}`,
-      };
+        console.log("💾 GUARDANDO ENTIDAD...");
+        await entidadesRepository.save(entidad);
+      }
     }
 
-    throw { status: 500, message: "Error al actualizar usuario" };
+    
+    const updatedUser = await userRepository.findOne({
+      where: { id },
+      relations: ["entidades"],
+    });
+
+    console.log("✅ USER FINAL:", updatedUser);
+
+    return {
+      ok: true,
+      id: updatedUser.id,
+      nombres: updatedUser.nombres,
+      apellidos: updatedUser.apellidos,
+      tipo: updatedUser.tipo,
+      cedula: updatedUser.cedula,
+      celular: updatedUser.celular,
+      email: updatedUser.email,
+      cargo: updatedUser.cargo,
+      insertador: updatedUser.insertador,
+
+      entidades: updatedUser.entidades?.map(e => ({
+        id: e.id,
+        facultad: e.facultad,
+        carrera: e.carrera,
+        materia: e.materia,
+        sigla: e.sigla,
+        
+      })),
+    };
+
+  } catch (err) {
+    console.error("❌ ERROR REAL EN UPDATE:", err);
+    throw err;
   }
 };
 
-// 📌 DELETE USER
 export const deleteUser = async (id) => {
   const user = await userRepository.findOne({
     where: { id },

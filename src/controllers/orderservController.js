@@ -3,13 +3,21 @@ import * as orderservService from "../services/orderservService.js";
 
 export const getOrders = async (req, res) => {
   try {
-    const orders = await orderservService.getAllOrders();
+    const orders =
+      await orderservService.getAllOrders({
+        page: req.query.page,
+        limit: req.query.limit,
+        search: req.query.search,
+        taller: req.query.taller,
+        institution: req.query.institution,
+      });
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message,
+    });
   }
 };
-
 
 export const getOrderById = async (req, res) => {
   try {

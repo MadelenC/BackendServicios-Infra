@@ -1,17 +1,55 @@
 // src/controllers/institutionController.js
 import * as institutionService from "../services/institutionService.js";
 
-// Obtener todas
-export const getInstitutions = async (req, res) => {
+
+export const getInstitutions = async (
+  req,
+  res
+) => {
+
   try {
-    const data = await institutionService.getAllInstitutions();
+
+    const {
+
+      page = 1,
+
+      limit = 8,
+
+      search = "",
+
+      institution = "",
+
+    } = req.query;
+
+    const data =
+      await institutionService
+        .getAllInstitutions({
+
+          page: Number(page),
+
+          limit: Number(limit),
+
+          search,
+
+          institution,
+
+        });
+
     res.json(data);
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    res.status(500).json({
+
+      error: err.message,
+
+    });
+
   }
+
 };
 
-// Obtener por ID
+
 export const getInstitutionById = async (req, res) => {
   try {
     const institution = await institutionService.getInstitutionById(
@@ -23,7 +61,7 @@ export const getInstitutionById = async (req, res) => {
   }
 };
 
-// Crear
+
 export const createInstitution = async (req, res) => {
   try {
     const nuevo = await institutionService.createInstitution(req.body);
@@ -33,7 +71,7 @@ export const createInstitution = async (req, res) => {
   }
 };
 
-// Actualizar
+
 export const updateInstitution = async (req, res) => {
   try {
     const actualizado = await institutionService.updateInstitution(
@@ -46,7 +84,7 @@ export const updateInstitution = async (req, res) => {
   }
 };
 
-// Eliminar
+
 export const deleteInstitution = async (req, res) => {
   try {
     await institutionService.deleteInstitution(Number(req.params.id));

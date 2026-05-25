@@ -1,12 +1,46 @@
 import * as userService from "../services/userService.js";
 
 export const getUsers = async (req, res) => {
+
   try {
-    const users = await userService.getAllUsers();
-    res.json(users);
+
+    const page =
+      parseInt(req.query.page) || 1;
+
+    const limit =
+      parseInt(req.query.limit) || 8;
+
+    const search =
+      req.query.search || "";
+
+    const role =
+      req.query.role || "";
+
+    const result =
+      await userService.getAllUsers({
+
+        page,
+
+        limit,
+
+        search,
+
+        role,
+
+      });
+
+    res.json(result);
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+
+    res.status(500).json({
+
+      message: err.message,
+
+    });
+
   }
+
 };
 
 export const createUser = async (req, res) => {

@@ -1,16 +1,21 @@
 import * as vehicleService from "../services/vehicleService.js";
 
-// Obtener todos los vehículos
 export const getVehicles = async (req, res) => {
   try {
-    const data = await vehicleService.getAllVehicles();
+    const { page = 1, limit = 10, estado } = req.query;
+
+    const data = await vehicleService.getAllVehicles({
+      page: Number(page),
+      limit: Number(limit),
+      estado,
+    });
+
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Obtener vehículo por ID
 export const getVehicleById = async (req, res) => {
   try {
     const vehicle = await vehicleService.getVehicleById(Number(req.params.id));
@@ -20,7 +25,7 @@ export const getVehicleById = async (req, res) => {
   }
 };
 
-// Crear un nuevo vehículo
+
 export const createVehicle = async (req, res) => {
   try {
     const result = await vehicleService.createVehicle(req.body);
@@ -30,7 +35,7 @@ export const createVehicle = async (req, res) => {
   }
 };
 
-// Actualizar vehículo existente
+
 export const updateVehicle = async (req, res) => {
   try {
     const result = await vehicleService.updateVehicle(
@@ -43,7 +48,7 @@ export const updateVehicle = async (req, res) => {
   }
 };
 
-// Eliminar vehículo
+
 export const deleteVehicle = async (req, res) => {
   try {
     await vehicleService.deleteVehicle(Number(req.params.id));

@@ -1,8 +1,97 @@
 import { PedidoservRepository } from "../repositories/orderservRepository.js";
+import { maintenanceRepository } from "../repositories/maintenanceRepository.js";
+
+export const getAllOrders = async ({
+  page = 1,
+  limit = 8,
+  search = "",
+  taller = "",
+  institution = "",
+}) => {
+
+ const query = PedidoservRepository
+  .createQueryBuilder("p")
+  .leftJoin(
+    "mantenimiento",
+    "m",
+    "m.id = CAST(p.man_id AS INTEGER)"
+  )
+  .select([
+    "p",
+    "m.descripcion AS descripcion"
+  ]);
+
+  
+  if (search) {
+
+    query.andWhere(
+      `
+      (
+        CAST(p.id AS TEXT) LIKE :search
+        OR LOWER(p.taller) LIKE LOWER(:search)
+      )
+      `,
+      {
+        search: `%${search}%`,
+      }
+    );
+  }
+
+  
+  if (taller) {
+
+    query.andWhere(
+      `
+      LOWER(p.taller)
+      LIKE LOWER(:taller)
+      `,
+      {
+        taller: `%${taller}%`,
+      }
+    );
+  }
+
+  
+  if (institution) {
+
+    query.andWhere(
+      "p.ins_id = :institution",
+      {
+        institution,
+      }
+    );
+  }
 
 
-export const getAllOrders = async () => {
-  return await PedidoservRepository.find();
+
+  query.orderBy("p.id", "DESC");
+
+  query.skip((page - 1) * limit);
+
+  query.take(limit);
+
+  const resultRaw = await query.getRawMany();
+
+  const total = await query.getCount();
+
+  const result = resultRaw.map(r => ({
+  id: r.p_id,
+  man_id: r.p_man_id,
+  ins_id: r.p_ins_id,
+  taller: r.p_taller,
+  estado: r.p_estado,
+  aprobacion: r.p_aprobacion,
+  descripcion: r.descripcion,
+
+}));
+
+  return {
+    orders: result,
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages: Math.ceil(total / limit),
+  };
 };
 
 
@@ -20,14 +109,14 @@ export const createOrder = async (data) => {
     ins_id: data.ins_id,
     taller: data.taller,
 
-    // datos de control
+
     estado: data.estado || "pendiente",
     aprobacion: data.aprobacion || "pendiente",
 
     encargado: data.encargado,
     jefe: data.jefe,
 
-    // SIN RELACIÓN (solo campo normal)
+   
     user_id: data.user_id || null,
   });
 
@@ -43,7 +132,7 @@ export const updateOrder = async (id, data) => {
  PedidoservRepository.merge(order, {
     ...data,
 
-    // asegurar que no se rompa el user_id
+    
     user_id: data.user_id ?? order.user_id,
   });
 

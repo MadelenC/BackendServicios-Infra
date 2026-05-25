@@ -1,13 +1,103 @@
 import { maintenanceRepository } from "../repositories/maintenanceRepository.js";
 
-// Obtener todos
-export const getAllMaintenances = async () => {
-  return await maintenanceRepository.find({
-    relations: ["user", "institucion"], 
-  });
+
+export const getAllMaintenances = async ({
+  page = 1,
+  limit = 8,
+  search = "",
+  taller = "",
+  institution = "",
+  aprobacion = "",
+}) => {
+  const query =maintenanceRepository
+      .createQueryBuilder("m")
+      .leftJoinAndSelect( "m.user", "user" )
+      .leftJoinAndSelect(
+        "m.institucion",
+        "institucion"
+      );
+
+  
+  if (search) {
+
+    query.andWhere(
+
+      `(
+        LOWER(m.responsable)
+        LIKE LOWER(:search)
+
+        OR
+
+        LOWER(m.encar)
+        LIKE LOWER(:search)
+      )`,
+
+      {
+        search: `%${search}%`,
+      }
+
+    );
+
+  }
+
+
+  if (taller) {
+    query.andWhere(
+      `
+      LOWER(m.taller)
+      LIKE LOWER(:taller)
+      `,
+
+      {
+        taller: `%${taller}%`,
+      }
+
+    );
+
+  }
+
+  if (institution) {
+    query.andWhere(   "institucion.id = :institution",{  institution,      }
+    );
+  }
+  if (aprobacion) {
+
+  query.andWhere(
+    "LOWER(TRIM(m.aprobacion)) = LOWER(TRIM(:aprobacion))",
+    { aprobacion }
+  );
+
+}
+
+  query.orderBy("m.id", "DESC");
+  query.skip((page - 1) * limit);
+  query.take(limit);
+  const [data, total] =await query.getManyAndCount();
+  return {
+    maintenances: data,
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages: Math.ceil(
+      total / limit
+    ),
+  };
 };
 
-// Obtener por ID
+export const getAllTalleres = async () => {
+
+  const result =
+    await maintenanceRepository
+      .createQueryBuilder("m")
+      .select("DISTINCT m.taller", "taller")
+      .where("m.taller IS NOT NULL")
+      .orderBy("m.taller", "ASC")
+      .getRawMany();
+
+  return result;
+};
+
+
 export const getMaintenanceById = async (id) => {
   const maintenance = await maintenanceRepository.findOne({
     where: { id },
@@ -18,7 +108,7 @@ export const getMaintenanceById = async (id) => {
   return maintenance;
 };
 
-// Crear
+
 export const createMaintenance = async (data) => {
   const nuevo = maintenanceRepository.create({
     equipo: data.equipo,
@@ -39,7 +129,7 @@ export const createMaintenance = async (data) => {
     cumplido: data.cumplido,
     id_nro: data.id_nro,
 
-    // relaciones (IMPORTANTE)
+    
     user: data.user_id ? { id: data.user_id } : null,
     institucion: data.institucion_id ? { id: data.institucion_id } : null,
   });
@@ -47,18 +137,20 @@ export const createMaintenance = async (data) => {
   return await maintenanceRepository.save(nuevo);
 };
 
-// Actualizar
+
 export const updateMaintenance = async (id, data) => {
-  const maintenance = await maintenanceRepository.findOneBy({ id });
-  if (!maintenance) throw new Error("Mantenimiento no encontrado");
 
-  maintenanceRepository.merge(maintenance, { ...data,
+  const maintenance =
+    await maintenanceRepository.findOne({
+      where: { id },
+      relations: ["user", "institucion"],
+    });
 
-    user: data.user_id ? { id: data.user_id } : maintenance.user,
-    institucion: data.institucion_id
-      ? { id: data.institucion_id }
-      : maintenance.institucion,
-  });
+  if (!maintenance) {
+    throw new Error("Mantenimiento no encontrado");
+  }
+
+  maintenanceRepository.merge(maintenance, data);
 
   return await maintenanceRepository.save(maintenance);
 };
