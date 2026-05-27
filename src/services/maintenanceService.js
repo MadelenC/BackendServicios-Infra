@@ -132,6 +132,8 @@ export const createMaintenance = async (data) => {
     
     user: data.user_id ? { id: data.user_id } : null,
     institucion: data.institucion_id ? { id: data.institucion_id } : null,
+     created_at: new Date(),
+    updated_at: new Date(),
   });
 
   return await maintenanceRepository.save(nuevo);
