@@ -10,6 +10,7 @@ export const getOrders = async (req, res) => {
         search: req.query.search,
         taller: req.query.taller,
         institution: req.query.institution,
+        aprobacion: req.query.aprobacion,
       });
     res.json(orders);
   } catch (err) {

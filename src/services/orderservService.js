@@ -7,6 +7,7 @@ export const getAllOrders = async ({
   search = "",
   taller = "",
   institution = "",
+  aprobacion = "",
 }) => {
 
  const query = PedidoservRepository
@@ -61,6 +62,16 @@ export const getAllOrders = async ({
       }
     );
   }
+  if (aprobacion) {
+
+  query.andWhere(
+    "p.aprobacion = :aprobacion",
+    {
+      aprobacion,
+    }
+  );
+
+}
 
 
 
