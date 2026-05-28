@@ -156,7 +156,7 @@ export const Pedidoserv = new EntitySchema({
     },
     user_id:{
       type:"int",
-      nullables:false,
+      nullable:false,
     },
     created_at: {
       type: "timestamp",
@@ -180,7 +180,7 @@ export const Pedidoserv = new EntitySchema({
     },
     estado:{
       type:"varchar",
-      nullables:false,
+      nullable:false,
     },
   },
   

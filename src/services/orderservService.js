@@ -127,7 +127,8 @@ export const createOrder = async (data) => {
     encargado: data.encargado,
     jefe: data.jefe,
 
-   
+   created_at: new Date(),
+    updated_at: new Date(),
     user_id: data.user_id || null,
   });
 
