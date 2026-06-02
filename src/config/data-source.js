@@ -10,6 +10,7 @@ import {Requests} from "../models/Requests.js";
 import {Pedidoserv}from "../models/Orderserv.js"
 import { Vehiculos } from "../models/vehicle.js";
 import { Accessories} from "../models/Accessories.js"; 
+import { UserInstitution } from "../models/UserInstitution.js";
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ export const AppDataSource = new DataSource({
     Requests,
     Pedidoserv,
     Vehiculos,
-    Accessories
+    Accessories,
+    UserInstitution,
   ],   
 });

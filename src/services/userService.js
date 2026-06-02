@@ -1,6 +1,7 @@
 import { userRepository } from "../repositories/userRepository.js";
 import { entidadesRepository } from "../repositories/entidadesRepository.js";
 import { maintenanceRepository } from "../repositories/maintenanceRepository.js";
+import { userInstitutionRepository } from "../repositories/userInstitutionRepository.js";
 import bcrypt from "bcrypt";
 
 
@@ -67,20 +68,13 @@ export const getAllUsers = async ({
     await query.getMany();
 
   return {
-
     users,
-
     total,
-
     page,
-
     limit,
-
     totalPages:
       Math.ceil(total / limit),
-
   };
-
 };
 
 export const getUserById = async (id) => {
@@ -116,12 +110,45 @@ export const createUser = async (data) => {
       password: hashedPassword,
 
       cargo: payload.cargo,
+      avatar: payload.avatar || null,
+      active: true,
       created_at: new Date(),
       updated_at: new Date(),
     };
 
     const user = userRepository.create(userAdd);
-    return await userRepository.save(user);
+
+const savedUser =
+  await userRepository.save(user);
+
+// Registrar instituciones
+if (
+  payload.instituciones &&
+  Array.isArray(payload.instituciones)
+) {
+
+  for (const institutionId of payload.instituciones) {
+
+    const relation =
+      userInstitutionRepository.create({
+
+        user: savedUser,
+
+        institution: {
+          id: institutionId,
+        },
+
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+    await userInstitutionRepository.save(
+      relation
+    );
+  }
+}
+
+return savedUser;
 
   } catch (err) {
     console.error("Error al crear usuario:", err);
@@ -220,6 +247,7 @@ export const updateUser = async (id, data) => {
       celular: updatedUser.celular,
       email: updatedUser.email,
       cargo: updatedUser.cargo,
+      avatar: updatedUser.avatar,
       insertador: updatedUser.insertador,
 
       entidades: updatedUser.entidades?.map(e => ({
@@ -237,6 +265,53 @@ export const updateUser = async (id, data) => {
     throw err;
   }
 };
+
+export const updateAvatar = async (id, avatarUrl) => {
+
+  const user = await userRepository.findOne({
+    where: { id },
+  });
+
+  if (!user) {
+    throw {
+      status: 404,
+      message: "Usuario no encontrado",
+    };
+  }
+
+  user.avatar = avatarUrl;
+  user.updated_at = new Date();
+
+  await userRepository.save(user);
+
+  return {
+    avatar: user.avatar,
+  };
+};
+
+export const updateAvatar = async (id, avatarUrl) => {
+
+  const user = await userRepository.findOne({
+    where: { id },
+  });
+
+  if (!user) {
+    throw {
+      status: 404,
+      message: "Usuario no encontrado",
+    };
+  }
+
+  user.avatar = avatarUrl;
+  user.updated_at = new Date();
+
+  await userRepository.save(user);
+
+  return {
+    avatar: user.avatar,
+  };
+};
+
 
 export const deleteUser = async (id) => {
   const user = await userRepository.findOne({
