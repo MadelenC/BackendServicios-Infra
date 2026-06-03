@@ -6,10 +6,10 @@ const SECRET_KEY = process.env.JWT_SECRET || 'secret_key';
 
 export const authService = {
   register: async (userData) => {
-    console.log('📦 Datos recibidos en register:', userData);
     const { email, password } = userData;
-
+    
     if (!email || !password) throw new Error('Email and password are required');
+    
 
     const existingUser = await userRepository.findOneBy({ email });
     if (existingUser) throw new Error('Email already in use');
@@ -28,14 +28,20 @@ export const authService = {
   },
 
   login: async ({ cedula, password }) => {
+
+    console.log('📦 Datos recibidos en register:', cedula, password);
+
+
   if (!cedula || !password) {
     throw new Error('Ci and password are required');
   }
 
-  const user = await userRepository.findOne({
-    where: { cedula: cedula.trim() },
-    relations: ["userInstitutions.institution" ],
-  });
+  const user = await userRepository
+  .createQueryBuilder("user")
+  .leftJoinAndSelect("user.userInstitutions", "ui")
+  .leftJoinAndSelect("ui.institution", "institution")
+  .where("user.cedula = :cedula", { cedula })
+  .getOne();
 
   if (!user) {
     throw new Error('Invalid Ci or password');
@@ -74,4 +80,3 @@ export const authService = {
   },
 
 };
-

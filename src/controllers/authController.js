@@ -13,7 +13,7 @@ export const login = async (req, res) => {
   try {
 
     console.log("DATOS RECIBIDOS EN EL LOGIN" ,req.body)
-
+    
     const { cedula, password } = req.body;
     if (!cedula || !password) throw new Error('Ci and password are required');
     
