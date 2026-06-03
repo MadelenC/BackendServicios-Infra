@@ -39,6 +39,42 @@ export const getMaintenances =
 
 };
 
+export const getMyInstitutionMaintenances =
+  async (req, res) => {
+
+    try {
+
+      const {
+        page = 1,
+        limit = 8,
+        search = "",
+        taller = "",
+        aprobacion = "",
+      } = req.query;
+
+      const data =
+        await maintenanceService
+          .getMaintenancesByUserInstitutions({
+            page: Number(page),
+            limit: Number(limit),
+            search,
+            taller,
+            aprobacion,
+            userId: req.user.id,
+          });
+
+      res.json(data);
+
+    } catch (err) {
+
+      res.status(500).json({
+        error: err.message,
+      });
+
+    }
+
+};
+
 export const getTalleres = async (req, res) => {
   try {
     const data =

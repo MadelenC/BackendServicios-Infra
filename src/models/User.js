@@ -30,6 +30,10 @@ export const User = new EntitySchema({
     tipo:{
       type:"varchar",
     },
+    tipo_serv:{
+      type:"varchar",
+      nullable:true
+    },
     cargo:{
       type:"varchar",
     },
@@ -77,6 +81,11 @@ export const User = new EntitySchema({
       type: "one-to-many",
       target: "Maintenance",
       inverseSide: "user",
-    }
+    },
+    userInstitutions: {
+      type: "one-to-many",
+      target: "UserInstitution",
+      inverseSide: "user",
+    },
   },
 });

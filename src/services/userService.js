@@ -46,7 +46,7 @@ export const getAllUsers = async ({
   if (role) {
 
     query.andWhere(
-      "user.tipo = :role",
+      "user.tipo_serv = :role",
       { role }
     );
 
@@ -80,7 +80,7 @@ export const getAllUsers = async ({
 export const getUserById = async (id) => {
   return await userRepository.findOne({
     where: { id },
-    relations: ["entidades", "maintenances"],
+    relations: [ "entidades","maintenances","userInstitutions", "userInstitutions.institution"]
   });
 };
 
@@ -101,14 +101,10 @@ export const createUser = async (data) => {
       cedula: payload.cedula,
       celular: payload.celular,
       email: payload.email,
-      tipo: payload.tipo,
-
-   
-      insertador: payload.insertador || "DESCONOCIDO",
-
-     
+      tipo: "ninguno",
+      tipo_serv: payload.tipo_serv,
+      insertador: payload.insertador || "DESCONOCIDO", 
       password: hashedPassword,
-
       cargo: payload.cargo,
       avatar: payload.avatar || null,
       active: true,
@@ -118,8 +114,7 @@ export const createUser = async (data) => {
 
     const user = userRepository.create(userAdd);
 
-const savedUser =
-  await userRepository.save(user);
+const savedUser =  await userRepository.save(user);
 
 // Registrar instituciones
 if (
@@ -129,11 +124,8 @@ if (
 
   for (const institutionId of payload.instituciones) {
 
-    const relation =
-      userInstitutionRepository.create({
-
+    const relation =   userInstitutionRepository.create({
         user: savedUser,
-
         institution: {
           id: institutionId,
         },
@@ -166,11 +158,12 @@ return savedUser;
 
 export const updateUser = async (id, data) => {
   try {
-    console.log("📥 DATA QUE LLEGA:", data);
+    console.log("DATA QUE LLEGA:", data);
 
     const user = await userRepository.findOne({
       where: { id },
-      relations: ["entidades"],
+     relations: [
+    "entidades",  "maintenances", "userInstitutions", "userInstitutions.institution" ],
     });
 
     if (!user) {
@@ -178,6 +171,8 @@ export const updateUser = async (id, data) => {
     }
 
     const { entidades, ...userData } = data;
+
+    
 
     console.log("👤 USER DATA:", userData);
     console.log("🏢 ENTIDADES:", entidades);
@@ -243,12 +238,18 @@ export const updateUser = async (id, data) => {
       nombres: updatedUser.nombres,
       apellidos: updatedUser.apellidos,
       tipo: updatedUser.tipo,
+      tipo_serv: updatedUser.tipo_serv,
       cedula: updatedUser.cedula,
       celular: updatedUser.celular,
       email: updatedUser.email,
       cargo: updatedUser.cargo,
       avatar: updatedUser.avatar,
       insertador: updatedUser.insertador,
+
+      institutions: updatedUser.userInstitutions?.map(ui => ({
+      id: ui.institution.id,
+      nombre: ui.institution.nombre
+    })) || [],
 
       entidades: updatedUser.entidades?.map(e => ({
         id: e.id,
@@ -264,29 +265,6 @@ export const updateUser = async (id, data) => {
     console.error("❌ ERROR REAL EN UPDATE:", err);
     throw err;
   }
-};
-
-export const updateAvatar = async (id, avatarUrl) => {
-
-  const user = await userRepository.findOne({
-    where: { id },
-  });
-
-  if (!user) {
-    throw {
-      status: 404,
-      message: "Usuario no encontrado",
-    };
-  }
-
-  user.avatar = avatarUrl;
-  user.updated_at = new Date();
-
-  await userRepository.save(user);
-
-  return {
-    avatar: user.avatar,
-  };
 };
 
 export const updateAvatar = async (id, avatarUrl) => {

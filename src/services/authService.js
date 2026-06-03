@@ -32,18 +32,16 @@ export const authService = {
     throw new Error('Ci and password are required');
   }
 
-  const user = await userRepository.findOneBy({
-    cedula: cedula.trim(),
+  const user = await userRepository.findOne({
+    where: { cedula: cedula.trim() },
+    relations: ["userInstitutions.institution" ],
   });
 
   if (!user) {
     throw new Error('Invalid Ci or password');
   }
 
-  const validPassword = await bcrypt.compare(
-    password,
-    user.password
-  );
+  const validPassword = await bcrypt.compare(password, user.password);
 
   if (!validPassword) {
     throw new Error('Invalid Ci or password');
@@ -55,11 +53,17 @@ export const authService = {
     { expiresIn: '1h' }
   );
 
-  const { password: _, ...userWithoutPassword } = user;
+  const { password: _, ...cleanUser } = user;
 
-  return { user: userWithoutPassword, token };
+  return {
+    user: {
+      ...cleanUser,
+      role: user.tipo_serv,
+      institutions: user.userInstitutions?.map(ui => ui.institution) || []
+    },
+    token
+  };
 },
-
   getByCi: async (ci) => {
     const user = await userRepository.findOneBy({ cedula: ci });
     return user;

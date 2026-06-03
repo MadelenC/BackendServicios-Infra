@@ -1,4 +1,5 @@
 import { maintenanceRepository } from "../repositories/maintenanceRepository.js";
+import { userRepository } from "../repositories/userRepository.js";
 
 
 export const getAllMaintenances = async ({
@@ -95,6 +96,89 @@ export const getAllTalleres = async () => {
       .getRawMany();
 
   return result;
+};
+
+export const getMaintenancesByUserInstitutions = async ({
+  page = 1,
+  limit = 8,
+  search = "",
+  taller = "",
+  aprobacion = "",
+  userId,
+}) => {
+
+  const user = await userRepository.findOne({
+    where: { id: userId },
+    relations: [
+      "userInstitutions",
+      "userInstitutions.institution",
+    ],
+  });
+
+  const institutionIds =
+  user?.userInstitutions?.map(
+    ui => Number(ui.institution.id)
+  ) || [];
+console.log("USER ID:", userId);
+console.log("USER:", JSON.stringify(user, null, 2));
+console.log("INSTITUTION IDS:", institutionIds);
+console.log("TYPE:", typeof institutionIds[0]);
+
+  const query = maintenanceRepository
+    .createQueryBuilder("m")
+    .leftJoinAndSelect("m.user", "user")
+    .leftJoinAndSelect(
+      "m.institucion",
+      "institucion"
+    );
+
+  if (institutionIds.length > 0) {
+    query.andWhere(
+      "institucion.id IN (:...institutionIds)",
+      { institutionIds }
+    );
+  }
+
+  if (search) {
+    query.andWhere(
+      `(LOWER(m.responsable) LIKE LOWER(:search)
+      OR LOWER(m.encar) LIKE LOWER(:search))`,
+      {
+        search: `%${search}%`,
+      }
+    );
+  }
+
+  if (taller) {
+    query.andWhere(
+      "LOWER(m.taller) LIKE LOWER(:taller)",
+      {
+        taller: `%${taller}%`,
+      }
+    );
+  }
+
+  if (aprobacion) {
+    query.andWhere(
+      "LOWER(TRIM(m.aprobacion)) = LOWER(TRIM(:aprobacion))",
+      { aprobacion }
+    );
+  }
+
+  query.orderBy("m.id", "DESC");
+  query.skip((page - 1) * limit);
+  query.take(limit);
+
+  const [data, total] =
+    await query.getManyAndCount();
+
+  return {
+    maintenances: data,
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages: Math.ceil(total / limit),
+  };
 };
 
 
