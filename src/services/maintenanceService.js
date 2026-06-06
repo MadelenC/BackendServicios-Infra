@@ -170,7 +170,7 @@ export const getMaintenancesByUserInstitutions = async ({
       totalPages: Math.ceil(total / limit),
     };
   } catch (error) {
-    console.error("🔥 ERROR my-institutions:", error);
+    console.error(" ERROR my-institutions:", error);
     throw error;
   }
 };

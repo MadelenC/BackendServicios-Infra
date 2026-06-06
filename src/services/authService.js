@@ -28,35 +28,34 @@ export const authService = {
   },
 
   login: async ({ cedula, password }) => {
-
-    console.log('📦 Datos recibidos en register:', cedula, password);
-
-
-  if (!cedula || !password) {
-    throw new Error('Ci and password are required');
-  }
-
   const user = await userRepository
-  .createQueryBuilder("user")
-  .leftJoinAndSelect("user.userInstitutions", "ui")
-  .leftJoinAndSelect("ui.institution", "institution")
-  .where("user.cedula = :cedula", { cedula })
-  .getOne();
+    .createQueryBuilder("user")
+    .leftJoinAndSelect("user.userInstitutions", "ui")
+    .leftJoinAndSelect("ui.institution", "institution")
+    .where("user.cedula = :cedula", { cedula })
+    .getOne();
 
   if (!user) {
-    throw new Error('Invalid Ci or password');
+    throw new Error("Invalid Ci or password");
   }
 
   const validPassword = await bcrypt.compare(password, user.password);
 
   if (!validPassword) {
-    throw new Error('Invalid Ci or password');
+    throw new Error("Invalid Ci or password");
+  }
+  const hasActiveInstitution = user.userInstitutions?.some(
+    (ui) => ui.active === true
+  );
+
+  if (!hasActiveInstitution) {
+    throw new Error("Usuario inactivo o sin instituciones activas");
   }
 
   const token = jwt.sign(
     { id: user.id, cedula: user.cedula },
     SECRET_KEY,
-    { expiresIn: '1h' }
+    { expiresIn: "1h" }
   );
 
   const { password: _, ...cleanUser } = user;

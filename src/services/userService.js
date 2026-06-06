@@ -12,18 +12,13 @@ export const getAllUsers = async ({
   role,
 }) => {
 
-  const query =
-    userRepository
+  const query = userRepository
       .createQueryBuilder("user")
+      .leftJoinAndSelect(  "user.entidades",  "entidades" )
+      .leftJoinAndSelect( "user.maintenances",  "maintenances" )
+      .leftJoinAndSelect("user.userInstitutions","userInstitutions")
+      .leftJoinAndSelect( "userInstitutions.institution", "institution" );
 
-      .leftJoinAndSelect(
-        "user.entidades",
-        "entidades"
-      )
-      .leftJoinAndSelect(
-        "user.maintenances",
-        "maintenances"
-      )
   if (search) {
     query.andWhere(
 
@@ -158,35 +153,83 @@ return savedUser;
 
 export const updateUser = async (id, data) => {
   try {
-    console.log("DATA QUE LLEGA:", data);
 
     const user = await userRepository.findOne({
       where: { id },
-     relations: [
-    "entidades",  "maintenances", "userInstitutions", "userInstitutions.institution" ],
+      relations: [
+        "entidades",
+        "maintenances",
+        "userInstitutions",
+        "userInstitutions.institution",
+      ],
     });
 
     if (!user) {
-      throw { status: 404, message: "Usuario no encontrado" };
+      throw {
+        status: 404,
+        message: "Usuario no encontrado",
+      };
     }
 
-    const { entidades, ...userData } = data;
+    // 👇 ahora también recibimos instituciones
+    const { entidades, instituciones, ...userData } = data;
 
-    
+    console.log("USER DATA:", userData);
+    console.log("ENTIDADES:", entidades);
+    console.log("INSTITUCIONES:", instituciones);
 
-    console.log("👤 USER DATA:", userData);
-    console.log("🏢 ENTIDADES:", entidades);
-
+    // evitar actualizar password vacío
     if (!userData.password) {
       delete userData.password;
     }
 
-    
+    // actualizar datos usuario
     userRepository.merge(user, userData);
+
     await userRepository.save(user);
 
-    
+    // =====================================================
+    // ACTUALIZAR INSTITUCIONES
+    // =====================================================
+
+    if (Array.isArray(instituciones)) {
+
+      // eliminar relaciones anteriores
+      await userInstitutionRepository.delete({
+        user: { id: user.id },
+      });
+
+      // volver a registrar instituciones nuevas
+      for (const institutionId of instituciones) {
+
+        const relation =
+          userInstitutionRepository.create({
+
+            user,
+
+            institution: {
+              id: institutionId,
+            },
+
+            active: true,
+
+            created_at: new Date(),
+            updated_at: new Date(),
+
+          });
+
+        await userInstitutionRepository.save(
+          relation
+        );
+      }
+    }
+
+    // =====================================================
+    // ACTUALIZAR ENTIDADES
+    // =====================================================
+
     if (Array.isArray(entidades)) {
+
       for (const eData of entidades) {
 
         console.log("➡️ PROCESANDO ENTIDAD:", eData);
@@ -194,46 +237,66 @@ export const updateUser = async (id, data) => {
         let entidad;
 
         if (eData.id) {
-          entidad = await entidadesRepository.findOneBy({ id: eData.id });
+
+          entidad =
+            await entidadesRepository.findOneBy({
+              id: eData.id,
+            });
 
           if (!entidad) {
+
             throw {
               status: 404,
               message: `Entidad ${eData.id} no encontrada`,
             };
+
           }
 
           entidadesRepository.merge(entidad, {
             ...eData,
-            updated_at: new Date(), 
+            updated_at: new Date(),
           });
 
         } else {
+
           entidad = entidadesRepository.create({
+
             ...eData,
+
             user,
 
-            
             created_at: new Date(),
             updated_at: new Date(),
+
           });
+
         }
 
         console.log("💾 GUARDANDO ENTIDAD...");
+
         await entidadesRepository.save(entidad);
       }
     }
 
-    
+    // =====================================================
+    // TRAER USUARIO ACTUALIZADO
+    // =====================================================
+
     const updatedUser = await userRepository.findOne({
       where: { id },
-      relations: ["entidades"],
+      relations: [
+        "entidades",
+        "userInstitutions",
+        "userInstitutions.institution",
+      ],
     });
 
     console.log("✅ USER FINAL:", updatedUser);
 
     return {
+
       ok: true,
+
       id: updatedUser.id,
       nombres: updatedUser.nombres,
       apellidos: updatedUser.apellidos,
@@ -246,27 +309,36 @@ export const updateUser = async (id, data) => {
       avatar: updatedUser.avatar,
       insertador: updatedUser.insertador,
 
-      institutions: updatedUser.userInstitutions?.map(ui => ({
-      id: ui.institution.id,
-      nombre: ui.institution.nombre
-    })) || [],
+      institutions:
+        updatedUser.userInstitutions?.map((ui) => ({
 
-      entidades: updatedUser.entidades?.map(e => ({
-        id: e.id,
-        facultad: e.facultad,
-        carrera: e.carrera,
-        materia: e.materia,
-        sigla: e.sigla,
-        
-      })),
+          id: ui.institution.id,
+          nombre: ui.institution.nombre,
+          active: ui.active,
+
+        })) || [],
+
+      entidades:
+        updatedUser.entidades?.map((e) => ({
+
+          id: e.id,
+          facultad: e.facultad,
+          carrera: e.carrera,
+          materia: e.materia,
+          sigla: e.sigla,
+
+        })) || [],
+
     };
 
   } catch (err) {
+
     console.error("❌ ERROR REAL EN UPDATE:", err);
+
     throw err;
+
   }
 };
-
 export const updateAvatar = async (id, avatarUrl) => {
 
   const user = await userRepository.findOne({
@@ -287,6 +359,41 @@ export const updateAvatar = async (id, avatarUrl) => {
 
   return {
     avatar: user.avatar,
+  };
+};
+
+export const toggleUserInstitution = async (userId) => {
+  const relations =await userInstitutionRepository.find({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: ["user"],
+    });
+
+  if (!relations.length) {
+    throw {
+      status: 404,
+      message: "Relación no encontrada",
+    };
+  }
+
+  for (const relation of relations) {
+
+    relation.active =
+      !relation.active;
+
+    relation.updated_at =
+      new Date();
+
+    await userInstitutionRepository.save(
+      relation
+    );
+  }
+
+  return {
+    ok: true,
   };
 };
 

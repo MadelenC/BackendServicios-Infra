@@ -3,44 +3,22 @@ import * as userService from "../services/userService.js";
 export const getUsers = async (req, res) => {
 
   try {
-
-    const page =
-      parseInt(req.query.page) || 1;
-
-    const limit =
-      parseInt(req.query.limit) || 8;
-
-    const search =
-      req.query.search || "";
-
-    const role =
-      req.query.role || "";
-
-    const result =
-      await userService.getAllUsers({
-
+    const page =  parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 8;
+    const search =req.query.search || "";
+    const role =  req.query.role || "";
+    const result = await userService.getAllUsers({
         page,
-
         limit,
-
         search,
-
         role,
-
-      });
-
+      })
     res.json(result);
-
   } catch (err) {
-
     res.status(500).json({
-
       message: err.message,
-
     });
-
   }
-
 };
 
 export const createUser = async (req, res) => {
@@ -69,6 +47,22 @@ export const updateUser = async (req, res) => {
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const toggleActive =async (req, res) => {
+  try {
+    const result =await userService.toggleUserInstitution(
+      req.params.id
+      );
+    res.json(result);
+  } catch (err) {
+    res.status(
+      err.status || 500
+    ).json({
+      message: err.message,
+    });
+
   }
 };
 

@@ -11,20 +11,6 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-
-    console.log("DATOS RECIBIDOS EN EL LOGIN" ,req.body)
-    
-    const { cedula, password } = req.body;
-    if (!cedula || !password) throw new Error('Ci and password are required');
-    
-    const response = await authService.getByCi(cedula);
-    if (!response) throw new Error('el Usuario no existe');
-
-    const result = await authService.comparePassword(password, response.password);
-    console.log("::RESPONSE::>>>" ,result)
-    if (!result) throw new Error('Contraseña incorrecta');
-
-    
     const { user, token } = await authService.login(req.body);
     res.status(200).json({ user, token });
   } catch (err) {

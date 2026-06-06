@@ -12,6 +12,10 @@ export const UserInstitution = new EntitySchema({
       primary: true,
       generated: true,
     },
+    active:{
+      type:"boolean",
+      default:true
+    },
 
     created_at: {
       type: "timestamp",
@@ -37,7 +41,7 @@ export const UserInstitution = new EntitySchema({
       type: "many-to-one",
       target: "Institution",
       joinColumn: {
-        name: "institution_id",
+        name: "institucion_id",
       },
     },
   },
