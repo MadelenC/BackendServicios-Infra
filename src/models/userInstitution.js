@@ -41,7 +41,7 @@ export const UserInstitution = new EntitySchema({
       type: "many-to-one",
       target: "Institution",
       joinColumn: {
-        name: "institucion_id",
+        name: "institution_id",
       },
     },
   },

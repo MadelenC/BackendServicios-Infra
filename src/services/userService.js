@@ -82,7 +82,17 @@ export const getUserById = async (id) => {
 export const createUser = async (data) => {
   try {
     const payload = { ...data };
-
+    const cedula = payload.cedula?.toString().trim();
+    console.log(" CEDULA Ingresada:", cedula);
+     const existingUser = await userRepository.findOne({
+        where: { cedula },
+     });
+      if (existingUser) {
+      throw {
+        status: 400,
+        message: "La cédula ya está registrada",
+      };
+    }
 
     if (!payload.email) delete payload.email;
     if (!payload.cargo) delete payload.cargo;
@@ -102,7 +112,7 @@ export const createUser = async (data) => {
       password: hashedPassword,
       cargo: payload.cargo,
       avatar: payload.avatar || null,
-      active: true,
+      active: false,
       created_at: new Date(),
       updated_at: new Date(),
     };
@@ -146,7 +156,7 @@ return savedUser;
       );
     }
 
-    throw new Error("No se pudo crear el usuario. Verifique los datos.");
+    throw new Error("No se pudo crear el usuario. Verifique que la cedula no este duplicada");
   }
 };
 
@@ -171,12 +181,12 @@ export const updateUser = async (id, data) => {
       };
     }
 
-    // 👇 ahora también recibimos instituciones
+
     const { entidades, instituciones, ...userData } = data;
 
-    console.log("USER DATA:", userData);
-    console.log("ENTIDADES:", entidades);
-    console.log("INSTITUCIONES:", instituciones);
+    //console.log("USER DATA:", userData);
+    //console.log("ENTIDADES:", entidades);
+    //console.log("INSTITUCIONES:", instituciones);
 
     // evitar actualizar password vacío
     if (!userData.password) {
@@ -187,10 +197,6 @@ export const updateUser = async (id, data) => {
     userRepository.merge(user, userData);
 
     await userRepository.save(user);
-
-    // =====================================================
-    // ACTUALIZAR INSTITUCIONES
-    // =====================================================
 
     if (Array.isArray(instituciones)) {
 
@@ -224,15 +230,12 @@ export const updateUser = async (id, data) => {
       }
     }
 
-    // =====================================================
-    // ACTUALIZAR ENTIDADES
-    // =====================================================
 
     if (Array.isArray(entidades)) {
 
       for (const eData of entidades) {
 
-        console.log("➡️ PROCESANDO ENTIDAD:", eData);
+       // console.log("PROCESANDO ENTIDAD:", eData);
 
         let entidad;
 
@@ -272,7 +275,7 @@ export const updateUser = async (id, data) => {
 
         }
 
-        console.log("💾 GUARDANDO ENTIDAD...");
+        //console.log(" GUARDANDO ENTIDAD...");
 
         await entidadesRepository.save(entidad);
       }
@@ -290,12 +293,10 @@ export const updateUser = async (id, data) => {
       ],
     });
 
-    console.log("✅ USER FINAL:", updatedUser);
+    //console.log(" USER FINAL:", updatedUser);
 
     return {
-
       ok: true,
-
       id: updatedUser.id,
       nombres: updatedUser.nombres,
       apellidos: updatedUser.apellidos,
@@ -307,7 +308,6 @@ export const updateUser = async (id, data) => {
       cargo: updatedUser.cargo,
       avatar: updatedUser.avatar,
       insertador: updatedUser.insertador,
-
       institutions:
         updatedUser.userInstitutions?.map((ui) => ({
 
@@ -317,9 +317,7 @@ export const updateUser = async (id, data) => {
 
         })) || [],
 
-      entidades:
-        updatedUser.entidades?.map((e) => ({
-
+      entidades:  updatedUser.entidades?.map((e) => ({
           id: e.id,
           facultad: e.facultad,
           carrera: e.carrera,
@@ -332,7 +330,7 @@ export const updateUser = async (id, data) => {
 
   } catch (err) {
 
-    console.error("❌ ERROR REAL EN UPDATE:", err);
+   //console.error(" ERROR REAL EN UPDATE:", err);
 
     throw err;
 

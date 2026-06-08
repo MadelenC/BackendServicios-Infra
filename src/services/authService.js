@@ -49,7 +49,7 @@ export const authService = {
   );
 
   if (!hasActiveInstitution) {
-    throw new Error("Usuario inactivo o sin instituciones activas");
+    throw new Error("Usuario inactivo o sin instituciones activas contactese con el administrador");
   }
 
   const token = jwt.sign(
