@@ -278,9 +278,8 @@ export const updateUser = async (id, data) => {
       }
     }
 
-    // =====================================================
-    // TRAER USUARIO ACTUALIZADO
-    // =====================================================
+  
+    
 
     const updatedUser = await userRepository.findOne({
       where: { id },
