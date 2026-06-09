@@ -83,7 +83,6 @@ export const createUser = async (data) => {
   try {
     const payload = { ...data };
     const cedula = payload.cedula?.toString().trim();
-    console.log(" CEDULA Ingresada:", cedula);
      const existingUser = await userRepository.findOne({
         where: { cedula },
      });
@@ -184,44 +183,29 @@ export const updateUser = async (id, data) => {
 
     const { entidades, instituciones, ...userData } = data;
 
-    //console.log("USER DATA:", userData);
-    //console.log("ENTIDADES:", entidades);
-    //console.log("INSTITUCIONES:", instituciones);
-
-    // evitar actualizar password vacío
     if (!userData.password) {
       delete userData.password;
     }
 
-    // actualizar datos usuario
     userRepository.merge(user, userData);
 
     await userRepository.save(user);
 
     if (Array.isArray(instituciones)) {
 
-      // eliminar relaciones anteriores
       await userInstitutionRepository.delete({
         user: { id: user.id },
       });
 
-      // volver a registrar instituciones nuevas
+ 
       for (const institutionId of instituciones) {
 
-        const relation =
-          userInstitutionRepository.create({
-
+        const relation =  userInstitutionRepository.create({
             user,
-
-            institution: {
-              id: institutionId,
-            },
-
+            institution: {  id: institutionId, },
             active: true,
-
             created_at: new Date(),
             updated_at: new Date(),
-
           });
 
         await userInstitutionRepository.save(
@@ -235,7 +219,6 @@ export const updateUser = async (id, data) => {
 
       for (const eData of entidades) {
 
-       // console.log("PROCESANDO ENTIDAD:", eData);
 
         let entidad;
 
@@ -275,7 +258,6 @@ export const updateUser = async (id, data) => {
 
         }
 
-        //console.log(" GUARDANDO ENTIDAD...");
 
         await entidadesRepository.save(entidad);
       }
@@ -293,7 +275,6 @@ export const updateUser = async (id, data) => {
       ],
     });
 
-    //console.log(" USER FINAL:", updatedUser);
 
     return {
       ok: true,
@@ -329,9 +310,6 @@ export const updateUser = async (id, data) => {
     };
 
   } catch (err) {
-
-   //console.error(" ERROR REAL EN UPDATE:", err);
-
     throw err;
 
   }

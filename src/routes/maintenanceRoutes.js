@@ -11,13 +11,13 @@ import {
 import { authenticate } from "../middlewares/authMiddleware.js";
 
 const router = Router();
-router.get("/talleres", getTalleres);
+router.get("/talleres",authenticate, getTalleres);
 router.get( "/my-institutions", authenticate, getMyInstitutionMaintenances);
-router.get("/", getMaintenances);
-router.get("/:id", getMaintenanceById);
-router.post("/", createMaintenance);
-router.put("/:id", updateMaintenance);
-router.delete("/:id", deleteMaintenance);
+router.get("/",authenticate, getMaintenances);
+router.get("/:id", authenticate,getMaintenanceById);
+router.post("/", authenticate,createMaintenance);
+router.put("/:id",authenticate, updateMaintenance);
+router.delete("/:id",authenticate, deleteMaintenance);
 
 
 export default router;

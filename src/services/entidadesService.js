@@ -36,7 +36,6 @@ export const createEntidad = async (data) => {
     const nuevaEntidad = entidadesRepository.create(entidadAdd);
     return await entidadesRepository.save(nuevaEntidad);
   } catch (error) {
-    //console.error(" Error al crear entidad:", error);
     throw error;
   }
 };

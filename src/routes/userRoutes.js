@@ -4,12 +4,12 @@ import { authenticate } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", getUsers);
-router.get("/:id",getUserById);
-router.post("/", createUser);   
-router.put("/:id", updateUser);
+router.get("/", authenticate,getUsers);
+router.get("/:id",authenticate,getUserById);
+router.post("/", authenticate,createUser);   
+router.put("/:id", authenticate, updateUser);
 router.patch("/toggle-active/:id", toggleActive);
-router.delete("/:id", deleteUser);
+router.delete("/:id", authenticate, deleteUser);
 router.get("/:id", authenticate, getUserById);
 
 export default router;
