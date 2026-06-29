@@ -4,6 +4,24 @@ import { maintenanceRepository } from "../repositories/maintenanceRepository.js"
 import { userInstitutionRepository } from "../repositories/userInstitutionRepository.js";
 import bcrypt from "bcrypt";
 
+const normalizeCi = (value = "") =>
+  String(value).trim().replace(/\s+/g, "").toUpperCase();
+
+const validateCi = (cedula) => {
+  const normalized = normalizeCi(cedula);
+
+  if (!normalized) {
+    throw new Error("CI obligatorio.");
+  }
+
+  if (!/^[0-9A-Z-]{5,15}$/.test(normalized)) {
+    throw new Error(
+      "CI invalido. Use entre 5 y 15 caracteres: numeros, letras o guion."
+    );
+  }
+
+  return normalized;
+};
 
 export const getAllUsers = async ({
   page,
@@ -82,16 +100,16 @@ export const getUserById = async (id) => {
 export const createUser = async (data) => {
   try {
     const payload = { ...data };
-    const cedula = payload.cedula?.toString().trim();
-     const existingUser = await userRepository.findOne({
-        where: { cedula },
-     });
-      if (existingUser) {
-      throw {
-        status: 400,
-        message: "La cédula ya está registrada",
-      };
+    payload.cedula = validateCi(payload.cedula);
+
+    const existingCi = await userRepository.findOne({
+      where: { cedula: payload.cedula },
+    });
+
+    if (existingCi) {
+      throw new Error("Ya existe un usuario con ese CI.");
     }
+
 
     if (!payload.email) delete payload.email;
     if (!payload.cargo) delete payload.cargo;
@@ -149,6 +167,14 @@ return savedUser;
   } catch (err) {
     console.error("Error al crear usuario:", err);
 
+    if (
+      err.message === "CI obligatorio." ||
+      err.message.startsWith("CI invalido") ||
+      err.message === "Ya existe un usuario con ese CI."
+    ) {
+      throw err;
+    }
+
     if (err.code === "23505") {
       throw new Error(
         "Ya existe un usuario con algún dato único duplicado (cedula, celular o email)."
@@ -180,19 +206,34 @@ export const updateUser = async (id, data) => {
       };
     }
 
-
+  
     const { entidades, instituciones, ...userData } = data;
 
     if (!userData.password) {
       delete userData.password;
     }
 
+    if (userData.cedula !== undefined) {
+      userData.cedula = validateCi(userData.cedula);
+
+      const existingCi = await userRepository.findOne({
+        where: { cedula: userData.cedula },
+      });
+
+      if (existingCi && Number(existingCi.id) !== Number(id)) {
+        throw new Error("Ya existe un usuario con ese CI.");
+      }
+    }
+
     userRepository.merge(user, userData);
 
     await userRepository.save(user);
 
+ 
+
     if (Array.isArray(instituciones)) {
 
+ 
       await userInstitutionRepository.delete({
         user: { id: user.id },
       });
@@ -214,6 +255,7 @@ export const updateUser = async (id, data) => {
       }
     }
 
+ 
 
     if (Array.isArray(entidades)) {
 
